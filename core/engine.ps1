@@ -1,6 +1,10 @@
 ﻿# ============================================================
-# engine.ps1 - harness 引擎核心函数库（执行 / 超时 / 异常检测）
+# engine.ps1 - AI-Dev-Harness 引擎核心函数库（执行 / 超时 / 异常检测）
 # 由 run.ps1 加载调用
+# 版本适配说明：
+#   - codex-cli 0.147.0：codex exec 支持 --sandbox / --skip-git-repo-check，无 --remote
+#   - codex-cloud（当前版本无 exec --remote）：Cloud 由登录态/配置决定，exec 同 codex-cli
+#   - deepseek-harness：优先 dsh --profile headless 真实执行，失败回落桥接模式
 # ============================================================
 
 $script:Engine = 'unsupported'
@@ -17,7 +21,8 @@ function Get-ExecCommandLine {
   param([string]$Prompt)
   switch ($script:Engine) {
     'codex-cli'   { return @('codex', 'exec', $Prompt, '--sandbox', 'workspace-write', '--skip-git-repo-check') }
-    'codex-cloud' { return @('codex', 'exec', '--remote', $Prompt, '--skip-git-repo-check') }
+    # Codex Cloud：当前 codex 版本（0.147.0）无 exec --remote；云端由登录态/配置(model_provider)决定
+    'codex-cloud' { return @('codex', 'exec', $Prompt, '--sandbox', 'workspace-write', '--skip-git-repo-check') }
     default       { return $null }
   }
 }
@@ -30,7 +35,12 @@ function Invoke-EngineExec {
     [int]$TimeoutSec = 600
   )
   if ($script:Engine -eq 'deepseek-harness') {
-    # DSH 桥接模式：把执行指令写入 docs/exec-prompt.md，交由 DSH 中的 AI 执行
+    # DSH 真实执行：优先 headless 模式（dsh --profile headless "任务"）
+    if (Get-Command dsh -ErrorAction SilentlyContinue) {
+      $dsOut = & dsh --profile headless $Prompt 2>&1 | Out-String
+      if ($LASTEXITCODE -eq 0 -and $dsOut -notmatch '^\s*$') { return $dsOut }
+    }
+    # 回落桥接模式：把执行指令写入 docs/exec-prompt.md，交由 DSH 中的 AI 执行
     $promptFile = Join-Path (Get-Location) 'docs\exec-prompt.md'
     $null = New-Item -ItemType Directory -Force -Path (Split-Path -Parent $promptFile)
     $content = "# DSH 桥接执行指令`n`n请按以下指令执行，完成后更新 plan.md 勾选状态并运行验证脚本：`n`n$Prompt`n"
@@ -93,7 +103,7 @@ __pycache__/
       } else { return }
     }
     & git add -A 2>$null | Out-Null
-    & git commit -m "harness: $Message" 2>$null | Out-Null
+    & git commit -m "AI-Dev-Harness: $Message" 2>$null | Out-Null
   } catch { }
   finally { Pop-Location }
 }
