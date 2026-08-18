@@ -18,14 +18,14 @@
 | 开关 | 作用 | 示例 |
 |---|---|---|
 | `SCOPE` | local=仅当前项目文件夹（默认）/ global=全局安装 / off=零写入预览 | `SCOPE=off .\AI-Dev-Harness\core\run.bat "目标"` |
-| `ENGINE` | 显式指定引擎：codex-cli / codex-cloud / deepseek-AI-Dev-Harness | `ENGINE=deepseek-AI-Dev-Harness …` |
+| `ENGINE` | 显式指定引擎：codex-cli / codex-cloud / deepseek-harness | `ENGINE=deepseek-harness …` |
 | `MAX_ROUNDS` | 最大执行轮次（默认 5，异常保护） | `MAX_ROUNDS=10 …` |
 
 ## 支持的 AI 软件（自动识别，未适配不执行）
 
 - **Codex CLI**（本地客户端）→ 适配方案：`adapters/codex-cli.md`
 - **Codex Cloud**（云端）→ 适配方案：`adapters/codex-cloud.md`
-- **DeepSeek Harness**（DSH）→ 适配方案：`adapters/deepseek-AI-Dev-Harness.md`（桥接模式）
+- **DeepSeek Harness**（DSH）→ 适配方案：`adapters/deepseek-harness.md`（桥接模式）
 
 ## 目录结构
 
