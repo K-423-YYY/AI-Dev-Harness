@@ -32,10 +32,14 @@ Write-Host "🔍 识别引擎：$engine　|　作用域：$scope"
 if ($engine -eq 'unsupported') {
   Write-Host ""
   Write-Host "❌ 当前环境未适配 Codex Harness 工作流。"
-  Write-Host "   支持列表：Codex CLI / Codex Cloud / DeepSeek Harness"
-  Write-Host "   请安装其一，或设置 ENGINE=codex-cli|codex-cloud|deepseek-harness 显式指定。"
+  Write-Host "   支持列表：Codex CLI / Codex Cloud / Claude Code / DeepSeek Harness"
+  Write-Host "   请安装其一，或设置 ENGINE=codex-cli|codex-cloud|claude-code|deepseek-harness 显式指定。"
   exit 1
 }
+
+# 版本自检（只读提示，不影响任何执行流程与退出码；失败静默）
+. (Join-Path $WorkflowDir 'version-check.ps1')
+Test-EngineVersion -Engine $engine
 
 # ---------- SCOPE=off：只读预览（N5）----------
 if ($scope -eq 'off') {

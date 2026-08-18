@@ -1,9 +1,10 @@
 ﻿# ============================================================
 # engine.ps1 - AI-Dev-Harness 引擎核心函数库（执行 / 超时 / 异常检测）
 # 由 run.ps1 加载调用
-# 版本适配说明：
+# 版本适配说明（2026-08 实测）：
 #   - codex-cli 0.147.0：codex exec 支持 --sandbox / --skip-git-repo-check，无 --remote
-#   - codex-cloud（当前版本无 exec --remote）：Cloud 由登录态/配置决定，exec 同 codex-cli
+#   - codex-cloud：当前版本无 exec --remote，Cloud 由登录态/配置决定，exec 同 codex-cli
+#   - claude-code 2.1.234：claude -p 非交互模式实测可用
 #   - deepseek-harness：优先 dsh --profile headless 真实执行，失败回落桥接模式
 # ============================================================
 
@@ -23,6 +24,8 @@ function Get-ExecCommandLine {
     'codex-cli'   { return @('codex', 'exec', $Prompt, '--sandbox', 'workspace-write', '--skip-git-repo-check') }
     # Codex Cloud：当前 codex 版本（0.147.0）无 exec --remote；云端由登录态/配置(model_provider)决定
     'codex-cloud' { return @('codex', 'exec', $Prompt, '--sandbox', 'workspace-write', '--skip-git-repo-check') }
+    # Claude Code：-p 非交互 + 纯文本输出 + 跳过权限确认（自动化必需）
+    'claude-code' { return @('claude', '-p', $Prompt, '--output-format', 'text', '--dangerously-skip-permissions') }
     default       { return $null }
   }
 }
@@ -54,12 +57,15 @@ function Invoke-EngineExec {
 
   $outLog = "$LogBase.out.log"
   $errLog = "$LogBase.err.log"
-  # 手动为含空格的参数加引号，避免 Start-Process 丢参
+  # 手动为含空格的参数加引号，避免参数被拆分
   $argStr = (($cmd[1..($cmd.Length - 1)] | ForEach-Object {
     if ($_ -match '\s') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ }
   }) -join ' ')
 
-  $proc = Start-Process -FilePath $cmd[0] -ArgumentList $argStr -NoNewWindow `
+  # npm 全局命令（codex/claude 等）是 .ps1/.cmd 包装，Start-Process 无法直接启动；
+  # 统一经 cmd.exe /c 执行（cmd 会正确解析 PATH 中的命令包装器），同时保留超时控制。
+  $fullCmd = $cmd[0] + ' ' + $argStr
+  $proc = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', $fullCmd -NoNewWindow `
     -RedirectStandardOutput $outLog -RedirectStandardError $errLog -PassThru
   if (-not $proc.WaitForExit($TimeoutSec * 1000)) {
     try { $proc.Kill() } catch { }

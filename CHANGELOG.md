@@ -18,3 +18,11 @@
 
 ## v1.0（2026-08-15）
 - 基座：基于 Codex 的一键自动化开发工作流（codex-workflow/ 单文件夹 + 单入口脚本）
+
+## v5.1（2026-08）
+- 新增：Claude Code 适配器（claude -p 非交互实测可用，本机 2.1.234）
+- 新增：版本自检模块 core/version-check.ps1（零影响：只读提示、失败静默、不阻断执行）
+- 修正：codex-cli 0.147.0 无 --remote（Codex Cloud 改登录态/配置识别）
+- 修正：DSH 适配升级为 headless 真实执行 + 桥接兜底
+- 修正：sync-to-github.ps1 兼容 PowerShell 5.1 stderr 警告（不再被 CRLF warning 终止）
+

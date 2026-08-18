@@ -69,14 +69,24 @@ exit /b 0
   if ((Get-Engine) -ne 'deepseek-harness') { throw '_detect deepseek-harness 失败' }
   $env:ENGINE = 'codex-cloud'
   if ((Get-Engine) -ne 'codex-cloud') { throw '_detect codex-cloud 失败' }
-  Write-Host '✅ _detect 显式指定正确'
+  $env:ENGINE = 'claude-code'
+  if ((Get-Engine) -ne 'claude-code') { throw '_detect claude-code 失败' }
+  Write-Host '✅ _detect 显式指定正确（含 claude-code）'
 
-  # 6) SCOPE=off 只读预览
-  Write-Host '--- 用例6：SCOPE=off 预览 ---'
+  # 6) 版本自检：零影响（不存在的引擎应静默；异常不应抛错）
+  Write-Host '--- 用例6：版本自检零影响 ---'
+  . (Join-Path $tempRoot 'harness\core\version-check.ps1')
+  Test-EngineVersion -Engine 'codex-cli'   # 版本拿不到或匹配都应静默/仅提示
+  Test-EngineVersion -Engine 'unknown-xyz' # 未知引擎应直接返回
+  Write-Host '✅ 版本自检调用无异常（零影响）'
+
+  # 7) SCOPE=off 只读预览
+  Write-Host '--- 用例7：SCOPE=off 预览 ---'
   $env:SCOPE = 'off'
   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $run '测试目标' | Out-Host
   if ($LASTEXITCODE -ne 0) { throw 'SCOPE=off 路径失败' }
   Remove-Item Env:SCOPE -ErrorAction SilentlyContinue
+  Remove-Item Env:ENGINE -ErrorAction SilentlyContinue
 
   Write-Host ''
   Write-Host '✅✅ selftest 全部通过'
